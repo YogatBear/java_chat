@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">chat_library</string>
+    <string name="title_activity_chat">ChatActivity</string>
+    <string name="title_activity_main">MainActivity</string>
+    <string name="title_username_activity">Username</string>
+    <string name="file_icon">File Icon</string>
+    <string name="image_description">Image Description</string>
+    <string name="image_message">Image Message</string>
+</resources>

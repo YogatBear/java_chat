@@ -1,0 +1,105 @@
+{
+  "project_info": {
+    "project_number": "112474795829",
+    "project_id": "dulcet-clock-403610",
+    "storage_bucket": "dulcet-clock-403610.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:112474795829:android:0bd688ac38d7889e06e67c",
+        "android_client_info": {
+          "package_name": "com.arnacon.chat_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAYa0TXFRBHYYxhcmdzF2rTcmMBA9srQCc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:112474795829:android:7b1f46bf778f8e5c06e67c",
+        "android_client_info": {
+          "package_name": "com.arnacon.java_chat"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAYa0TXFRBHYYxhcmdzF2rTcmMBA9srQCc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:112474795829:android:ddfe138792ac13f006e67c",
+        "android_client_info": {
+          "package_name": "com.example.flutter_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAYa0TXFRBHYYxhcmdzF2rTcmMBA9srQCc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:112474795829:android:0f9554631a64721a06e67c",
+        "android_client_info": {
+          "package_name": "com.example.flutter_chat"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAYa0TXFRBHYYxhcmdzF2rTcmMBA9srQCc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:112474795829:android:b256729b4a7e5a7706e67c",
+        "android_client_info": {
+          "package_name": "com.example.testingnotifcation"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAYa0TXFRBHYYxhcmdzF2rTcmMBA9srQCc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
