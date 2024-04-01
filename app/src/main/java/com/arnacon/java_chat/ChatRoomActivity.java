@@ -20,66 +20,74 @@ import com.arnacon.chat_library.ChatManager;
 import com.arnacon.chat_library.DisplayedMessage;
 
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.List;
-
 
 public class ChatRoomActivity extends AppCompatActivity implements ChatManager.ChatUpdateListener {
 
-    private static final int imageRequestCode = 1;
+    private static final int IMAGE_REQUEST_CODE = 1;
     private RecyclerView messagesRecyclerView;
     private EditText messageEditText;
-    private Button sendButton;
+    private ImageView imageView;
     private MessageAdapter messageAdapter;
     private ChatManager chatManager;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.recyclerview); // Assuming this is your layout file
+        setContentView(R.layout.recyclerview);
 
+        setupUI();
+        setupChatManager();
+    }
+
+    private void setupUI() {
         String username = getIntent().getStringExtra("username");
-        if (username == null) username = "user123";
+        username = username != null ? username : "user123";
 
         messageEditText = findViewById(R.id.edit_gchat_message);
-        sendButton = findViewById(R.id.button_gchat_send);
+        Button sendButton = findViewById(R.id.button_gchat_send);
         messagesRecyclerView = findViewById(R.id.recycler_gchat);
+        imageView = findViewById(R.id.imageView);
 
-        messageAdapter = new MessageAdapter(new java.util.ArrayList<>(), username, this::openFile);
+        messageAdapter = new MessageAdapter(new ArrayList<>(), username, this::openFile);
         messagesRecyclerView.setAdapter(messageAdapter);
         messagesRecyclerView.setLayoutManager(new LinearLayoutManager(this));
 
+        sendButton.setOnClickListener(v -> sendMessage());
+        findViewById(R.id.button_send_image).setOnClickListener(v -> openImagePicker());
+    }
+
+    private void setupChatManager() {
+        String username = getIntent().getStringExtra("username");
+        if (username == null) username = "user123";
+
         chatManager = new ChatManager(this, username);
         chatManager.setUpdateListener(this);
+        chatManager.loadRecentMessages(0, 10);
+    }
 
-        chatManager.loadRecentMessages(0,10);
-
-        sendButton.setOnClickListener(v -> {
-            String messageText = messageEditText.getText().toString();
-            if (!messageText.isEmpty()) {
-                // Replace with appropriate threading/logic to offload IO operations
-                newMessage("text", messageText, null);
-                messageEditText.setText("");
-            }
-        });
-
-        Button sendImageButton = findViewById(R.id.button_send_image);
-        sendImageButton.setOnClickListener(v -> openImagePicker());
+    private void sendMessage() {
+        String messageText = messageEditText.getText().toString();
+        if (!messageText.isEmpty()) {
+            newMessage("text", messageText, null);
+            messageEditText.setText("");
+        }
     }
 
     @Override
     public void onNewMessage(DisplayedMessage displayedMessage) {
-        runOnUiThread(() -> {
-            messageAdapter.addMessage(displayedMessage);
-            messagesRecyclerView.scrollToPosition(messageAdapter.getItemCount() - 1);
-        });
+        updateMessagesList(() -> messageAdapter.addMessage(displayedMessage));
     }
 
     @Override
     public void onNewMessages(@NonNull List<? extends DisplayedMessage> displayedMessages) {
+        updateMessagesList(() -> displayedMessages.forEach(messageAdapter::addMessage));
+    }
+
+    private void updateMessagesList(Runnable updateOperation) {
         runOnUiThread(() -> {
-            for (DisplayedMessage displayedMessage : displayedMessages) {
-                messageAdapter.addMessage(displayedMessage);
-            }
+            updateOperation.run();
             messagesRecyclerView.scrollToPosition(messageAdapter.getItemCount() - 1);
         });
     }
@@ -87,22 +95,17 @@ public class ChatRoomActivity extends AppCompatActivity implements ChatManager.C
     private void openImagePicker() {
         Intent intent = new Intent(Intent.ACTION_PICK);
         intent.setType("image/*");
-        startActivityForResult(intent, imageRequestCode);
+        startActivityForResult(intent, IMAGE_REQUEST_CODE);
     }
 
     private void openFile(Uri fileUri) {
-        // Replace with appropriate threading/logic to offload IO operations
         new Thread(() -> {
             try {
-                Uri uri = fileUri;
-                InputStream inputStream = getContentResolver().openInputStream(uri);
+                InputStream inputStream = getContentResolver().openInputStream(fileUri);
                 Bitmap bitmap = BitmapFactory.decodeStream(inputStream);
-                runOnUiThread(() -> {
-                    ImageView imageView = findViewById(R.id.imageView);
-                    imageView.setImageBitmap(bitmap);
-                });
+                runOnUiThread(() -> imageView.setImageBitmap(bitmap));
             } catch (Exception e) {
-                Log.e("MainActivity", "Error opening file: " + e.getMessage());
+                Log.e("ChatRoomActivity", "Error opening file: " + e.toString());
             }
         }).start();
     }
@@ -110,7 +113,7 @@ public class ChatRoomActivity extends AppCompatActivity implements ChatManager.C
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == imageRequestCode && resultCode == RESULT_OK) {
+        if (requestCode == IMAGE_REQUEST_CODE && resultCode == RESULT_OK) {
             Uri uri = data != null ? data.getData() : null;
             if (uri != null) {
                 newMessage("file", "Image", uri);
@@ -118,7 +121,7 @@ public class ChatRoomActivity extends AppCompatActivity implements ChatManager.C
         }
     }
 
-    private void newMessage(String messageType, String content, Uri uri){
+    private void newMessage(String messageType, String content, Uri uri) {
         chatManager.newMessage(messageType, content, uri,
                 newMessage -> {
                     Log.d("ChatRoomActivity", "Message created successfully: " + newMessage.getContent());
@@ -129,8 +132,6 @@ public class ChatRoomActivity extends AppCompatActivity implements ChatManager.C
                 throwable -> {
                     Log.e("ChatRoomActivity", "Failed to create message", throwable);
                     return null;
-                }
-        );
+                });
     }
-
 }
