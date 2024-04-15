@@ -1,137 +1,172 @@
 package com.arnacon.java_chat;
 
 import android.content.Intent;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
-import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.arnacon.chat_library.ChatManager;
+import com.arnacon.chat_library.ChatSession;
 import com.arnacon.chat_library.DisplayedMessage;
+import com.arnacon.chat_library.Message;
+import com.arnacon.chat_library.SessionManager;
 
-import java.io.InputStream;
+import org.greenrobot.eventbus.EventBus;
+import org.greenrobot.eventbus.Subscribe;
+import org.greenrobot.eventbus.ThreadMode;
+import androidx.annotation.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
 
-public class ChatRoomActivity extends AppCompatActivity implements ChatManager.ChatUpdateListener {
+import android.widget.Button;
+public class ChatRoomActivity extends AppCompatActivity {
 
-    private static final int IMAGE_REQUEST_CODE = 1;
     private RecyclerView messagesRecyclerView;
     private EditText messageEditText;
-    private ImageView imageView;
     private MessageAdapter messageAdapter;
+    private String sessionContext;
+    private String username;
     private ChatManager chatManager;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.recyclerview);
+        setContentView(R.layout.activity_chatroom);
+        setupIntentData();
+
+        SessionManager sessionManager = new SessionManager(this, username);
+        chatManager = new ChatManager(this,username);
+
+        Log.d("ChatRoomActivity", "Fetching session: " + sessionContext);
+
+        ChatSession session = sessionManager.getSession(sessionContext);
 
         setupUI();
-        setupChatManager();
+    }
+
+    private void setupIntentData() {
+        Intent intent = getIntent();
+        sessionContext = intent.getStringExtra("sessionContext"); // Retrieve the session ID
+        username = intent.getStringExtra("username");
     }
 
     private void setupUI() {
-        String username = getIntent().getStringExtra("username");
-        username = username != null ? username : "user123";
+        messagesRecyclerView = findViewById(R.id.recycler_gchat); // Use your actual RecyclerView ID
+        messageEditText = findViewById(R.id.edit_gchat_message); // And EditText ID for message input
+        Button sendButton = findViewById(R.id.button_gchat_send); // And the Button ID for sending a message
 
-        messageEditText = findViewById(R.id.edit_gchat_message);
-        Button sendButton = findViewById(R.id.button_gchat_send);
-        messagesRecyclerView = findViewById(R.id.recycler_gchat);
-        imageView = findViewById(R.id.imageView);
-
-        messageAdapter = new MessageAdapter(new ArrayList<>(), username, this::openFile);
+        messageAdapter = new MessageAdapter(new ArrayList<>(), username, null); // Replace "YourUsername" appropriately
         messagesRecyclerView.setAdapter(messageAdapter);
         messagesRecyclerView.setLayoutManager(new LinearLayoutManager(this));
 
-        sendButton.setOnClickListener(v -> sendMessage());
+        ImageView imageView = findViewById(R.id.imageView);
         findViewById(R.id.button_send_image).setOnClickListener(v -> openImagePicker());
+
+        sendButton.setOnClickListener(v -> sendMessage());
+
+        List<Message> recentMessages = chatManager.loadRecentMessages(0, 10, sessionContext);
+        for (Message message : recentMessages) {;
+            displayMessage(message);
+        }
+
+
     }
 
-    private void setupChatManager() {
-        String username = getIntent().getStringExtra("username");
-        if (username == null) username = "user123";
-
-        chatManager = new ChatManager(this, username);
-        chatManager.setUpdateListener(this);
-        chatManager.loadRecentMessages(0, 10);
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        EventBus.getDefault().unregister(this);
     }
+
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void onMessageEvent(MessageEvent event) {
+        // Check if the message belongs to the current session
+        if (event.message.getContext().equals(sessionContext)) {
+            // Update your adapter here
+            displayMessage(event.message);
+        }
+    }
+
+    private Message newMessage(String messageType, String content, Uri uri) {
+        // Initialize the newMessage as null to ensure method returns a value in all cases
+        Message newMessage = null;
+        CompletableFuture<Message> futureMessage = chatManager.newMessage(messageType, content, uri, username);
+        try {
+            newMessage = futureMessage.get(); // This blocks the current thread.
+            Log.d("ChatRoomActivity", "Message created successfully: " + newMessage.getContent());
+            chatManager.storeMessage(newMessage, sessionContext);
+            chatManager.uploadMessage(newMessage, sessionContext);
+        } catch (InterruptedException e) {
+            // Handle the InterruptedException
+            Thread.currentThread().interrupt();
+            Log.e("ChatRoomActivity", "Message creation was interrupted", e);
+        } catch (ExecutionException e) {
+            // Handle the ExecutionException
+            Log.e("ChatRoomActivity", "Exception during message creation", e.getCause());
+        }
+        return newMessage;
+    }
+
+    private void displayMessage(Message message) {
+        DisplayedMessage displayedMessage = chatManager.getDisplayedMessage(message);
+        Log.d("ChatRoomActivity", "Displaying message:" + displayedMessage);
+        messageAdapter.addMessage(displayedMessage);
+        messagesRecyclerView.scrollToPosition(messageAdapter.getItemCount() - 1);
+    }
+
 
     private void sendMessage() {
         String messageText = messageEditText.getText().toString();
         if (!messageText.isEmpty()) {
-            newMessage("text", messageText, null);
             messageEditText.setText("");
+            Message message = newMessage("text", messageText, null);
+            displayMessage(message);
         }
     }
 
-    @Override
-    public void onNewMessage(DisplayedMessage displayedMessage) {
-        updateMessagesList(() -> messageAdapter.addMessage(displayedMessage));
+    private void openFile(Uri fileUri) {
+        CompletableFuture.supplyAsync(() -> newMessage("file", "", fileUri))
+                .thenAcceptAsync(this::displayMessage, runOnUiThreadExecutor());
     }
 
-    @Override
-    public void onNewMessages(@NonNull List<? extends DisplayedMessage> displayedMessages) {
-        updateMessagesList(() -> displayedMessages.forEach(messageAdapter::addMessage));
-    }
-
-    private void updateMessagesList(Runnable updateOperation) {
-        runOnUiThread(() -> {
-            updateOperation.run();
-            messagesRecyclerView.scrollToPosition(messageAdapter.getItemCount() - 1);
-        });
+    private Executor runOnUiThreadExecutor() {
+        return this::runOnUiThread;
     }
 
     private void openImagePicker() {
         Intent intent = new Intent(Intent.ACTION_PICK);
         intent.setType("image/*");
-        startActivityForResult(intent, IMAGE_REQUEST_CODE);
-    }
-
-    private void openFile(Uri fileUri) {
-        new Thread(() -> {
-            try {
-                InputStream inputStream = getContentResolver().openInputStream(fileUri);
-                Bitmap bitmap = BitmapFactory.decodeStream(inputStream);
-                runOnUiThread(() -> imageView.setImageBitmap(bitmap));
-            } catch (Exception e) {
-                Log.e("ChatRoomActivity", "Error opening file: " + e.toString());
-            }
-        }).start();
+        startActivityForResult(intent, 1);
     }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == IMAGE_REQUEST_CODE && resultCode == RESULT_OK) {
-            Uri uri = data != null ? data.getData() : null;
-            if (uri != null) {
-                newMessage("file", "Image", uri);
-            }
+        if (requestCode == 1 && resultCode == RESULT_OK && data != null && data.getData() != null) {
+            Uri imageUri = data.getData();
+            openFile(imageUri);
         }
     }
 
-    private void newMessage(String messageType, String content, Uri uri) {
-        chatManager.newMessage(messageType, content, uri,
-                newMessage -> {
-                    Log.d("ChatRoomActivity", "Message created successfully: " + newMessage.getContent());
-                    chatManager.storeMessage(newMessage);
-                    chatManager.uploadMessage(newMessage);
-                    return null;
-                },
-                throwable -> {
-                    Log.e("ChatRoomActivity", "Failed to create message", throwable);
-                    return null;
-                });
+    @Override
+    protected void onStart() {
+        super.onStart();
+        EventBus.getDefault().register(this);
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        EventBus.getDefault().unregister(this);
     }
 }

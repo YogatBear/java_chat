@@ -16,9 +16,9 @@ import java.util.function.Consumer;
 
 public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
-    private List<DisplayedMessage> messages;
-    private String currentUser;
-    private Consumer<Uri> onFileClick;
+    private final List<DisplayedMessage> messages;
+    private final String currentUser;
+    private final Consumer<Uri> onFileClick;
 
     private static final int VIEW_TYPE_MY_TEXT_MESSAGE = 1;
     private static final int VIEW_TYPE_OTHER_TEXT_MESSAGE = 2;
@@ -111,16 +111,10 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         notifyItemInserted(messages.size() - 1);
     }
 
-    public void setMessages(List<DisplayedMessage> newMessages) {
-        messages.clear();
-        messages.addAll(newMessages);
-        notifyDataSetChanged();
-    }
-
     static class MyMessageViewHolder extends RecyclerView.ViewHolder {
-        private TextView messageText;
-        private TextView dateText;
-        private TextView timeText;
+        private final TextView messageText;
+        private final TextView dateText;
+        private final TextView timeText;
 
         MyMessageViewHolder(View view) {
             super(view);
@@ -138,13 +132,15 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
     }
 
     static class OtherMessageViewHolder extends RecyclerView.ViewHolder {
-        private TextView messageText;
-        private TextView dateText;
-        private TextView timeText;
+        private final TextView messageText;
+        private final TextView senderNameText;
+        private final TextView dateText;
+        private final TextView timeText;
 
         OtherMessageViewHolder(View view) {
             super(view);
             messageText = view.findViewById(R.id.text_gchat_message_other);
+            senderNameText = itemView.findViewById(R.id.text_gchat_user_other);
             dateText = view.findViewById(R.id.text_gchat_date_other);
             timeText = view.findViewById(R.id.text_gchat_timestamp_other);
         }
@@ -152,16 +148,17 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         void bind(DisplayedMessage.TextMessage message, boolean showDate) {
             dateText.setVisibility(showDate ? View.VISIBLE : View.GONE);
             messageText.setText(message.getText());
+            senderNameText.setText(message.getSender());
             dateText.setText(message.getFormattedDate());
             timeText.setText(message.getFormattedTime());
         }
     }
 
-    class MyFileMessageViewHolder extends RecyclerView.ViewHolder {
-        private TextView fileNameText;
-        private TextView fileSizeText;
-        private TextView dateText;
-        private TextView timeText;
+    static class MyFileMessageViewHolder extends RecyclerView.ViewHolder {
+        private final TextView fileNameText;
+        private final TextView fileSizeText;
+        private final TextView dateText;
+        private final TextView timeText;
         private Uri fileUri;
 
         MyFileMessageViewHolder(View itemView, Consumer<Uri> onFileClick) {
@@ -171,7 +168,11 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
             dateText = itemView.findViewById(R.id.text_gchat_date_me);
             timeText = itemView.findViewById(R.id.text_gchat_timestamp_me);
 
-            itemView.setOnClickListener(v -> onFileClick.accept(fileUri));
+            itemView.setOnClickListener(v -> {
+                if (onFileClick != null) {
+                    onFileClick.accept(fileUri);
+                }
+            });
         }
 
         void bind(DisplayedMessage.FileMessage message, boolean showDate) {
@@ -184,12 +185,11 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         }
     }
 
-    // OtherFileMessageViewHolder implementation
-    class OtherFileMessageViewHolder extends RecyclerView.ViewHolder {
-        private TextView fileNameText;
-        private TextView fileSizeText;
-        private TextView dateText;
-        private TextView timeText;
+    static class OtherFileMessageViewHolder extends RecyclerView.ViewHolder {
+        private final TextView fileNameText;
+        private final TextView fileSizeText;
+        private final TextView dateText;
+        private final TextView timeText;
         private Uri fileUri;
 
         OtherFileMessageViewHolder(View itemView, Consumer<Uri> onFileClick) {
@@ -199,7 +199,11 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
             dateText = itemView.findViewById(R.id.text_gchat_date_other);
             timeText = itemView.findViewById(R.id.text_gchat_timestamp_other);
 
-            itemView.setOnClickListener(v -> onFileClick.accept(fileUri));
+            itemView.setOnClickListener(v -> {
+                if (onFileClick != null) {
+                    onFileClick.accept(fileUri);
+                }
+            });
         }
 
         void bind(DisplayedMessage.FileMessage message, boolean showDate) {
@@ -212,11 +216,10 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         }
     }
 
-    // MyImageMessageViewHolder implementation
     class MyImageMessageViewHolder extends RecyclerView.ViewHolder {
-        private ImageView imageView;
-        private TextView dateText;
-        private TextView timeText;
+        private final ImageView imageView;
+        private final TextView dateText;
+        private final TextView timeText;
         private Uri imageUri;
 
         MyImageMessageViewHolder(View itemView, Consumer<Uri> onImageClick) {
@@ -225,7 +228,11 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
             dateText = itemView.findViewById(R.id.text_image_date); // Adjust ID as necessary
             timeText = itemView.findViewById(R.id.text_image_timestamp); // Adjust ID as necessary
 
-            itemView.setOnClickListener(v -> onImageClick.accept(imageUri));
+            itemView.setOnClickListener(v -> {
+                if (onFileClick != null) {
+                    onFileClick.accept(imageUri);
+                }
+            });
         }
 
         void bind(DisplayedMessage.FileMessage message, boolean showDate) {
@@ -237,12 +244,11 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         }
     }
 
-    // OtherImageMessageViewHolder implementation
     class OtherImageMessageViewHolder extends RecyclerView.ViewHolder {
-        private ImageView imageView;
-        private TextView senderNameText;
-        private TextView dateText;
-        private TextView timeText;
+        private final ImageView imageView;
+        private final TextView senderNameText;
+        private final TextView dateText;
+        private final TextView timeText;
         private Uri imageUri;
 
         OtherImageMessageViewHolder(View itemView, Consumer<Uri> onImageClick) {
@@ -252,7 +258,11 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
             dateText = itemView.findViewById(R.id.text_gchat_date_other);
             timeText = itemView.findViewById(R.id.text_gchat_timestamp_other);
 
-            itemView.setOnClickListener(v -> onImageClick.accept(imageUri));
+            itemView.setOnClickListener(v -> {
+                if (onFileClick != null) {
+                    onFileClick.accept(imageUri);
+                }
+            });
         }
 
         void bind(DisplayedMessage.FileMessage message, boolean showDate) {
