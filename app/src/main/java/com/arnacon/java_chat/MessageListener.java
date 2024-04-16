@@ -17,24 +17,38 @@ import org.greenrobot.eventbus.EventBus;
 import java.util.concurrent.CompletableFuture;
 
 public class MessageListener {
+    private static MessageListener instance = null;
+    private boolean alreadyListening = false;
     private final FirestoreMessaging firestoreMessaging;
     private final ChatManager chatManager;
+    private final String username;
 
 
-    public MessageListener(Context context, String user) {
+    private MessageListener(Context context, String user) {
         // Assuming FirestoreMessaging takes the current user as the parameter for initialization
         this.firestoreMessaging = new FirestoreMessaging(user);
         this.chatManager = new ChatManager(context, user);
+        this.username = user;
+    }
+
+    public static synchronized MessageListener getInstance(Context context, String user) {
+        if (instance == null || !instance.username.equals(user)) {
+            instance = new MessageListener(context, user);
+        }
+        return instance;
     }
 
     public void startListening() {
-        firestoreMessaging.listenForNewMessages(newMessage -> {
-            CompletableFuture<Void> future = chatManager.storeMessage(newMessage, newMessage.getContext());
-            future.thenRun(() -> EventBus.getDefault().post(new MessageEvent(newMessage))).exceptionally(ex -> {
-                Log.e("MessageListener", "Error processing message", ex);
+        if (!alreadyListening) {
+            alreadyListening = true;
+            firestoreMessaging.listenForNewMessages(newMessage -> {
+                CompletableFuture<Void> future = chatManager.storeMessage(newMessage, newMessage.getContext());
+                future.thenRun(() -> EventBus.getDefault().post(new MessageEvent(newMessage))).exceptionally(ex -> {
+                    Log.e("MessageListener", "Error processing message", ex);
+                    return null;
+                });
                 return null;
             });
-            return null;
-        });
+        }
     }
 }

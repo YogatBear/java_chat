@@ -11,7 +11,6 @@ import com.arnacon.chat_library.Storage;
 public class UsernameActivity extends AppCompatActivity {
 
     // Declare the MessageListener at the class level to keep it alive
-    private MessageListener messageListener;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -25,9 +24,9 @@ public class UsernameActivity extends AppCompatActivity {
         buttonSubmit.setOnClickListener(v -> {
             String username = editTextUsername.getText().toString().trim();
             if (!username.isEmpty()) {
-                // Initialize the MessageListener with application context to ensure it has the same lifecycle as the app
-                messageListener = new MessageListener(getApplicationContext(), username);
-                messageListener.startListening();
+                // Listener Singleton
+                MessageListener listener = MessageListener.getInstance(getApplicationContext(), username);
+                listener.startListening();
 
                 Intent intent = new Intent(UsernameActivity.this, SessionsListActivity.class);
                 intent.putExtra("username", username);

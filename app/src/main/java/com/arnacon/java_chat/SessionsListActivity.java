@@ -34,6 +34,7 @@ public class SessionsListActivity extends AppCompatActivity {
 
         Intent intent = getIntent();
         username = intent.getStringExtra("username");
+        assert username != null;
         sessionManager = new SessionManager(this, username);
 
         RecyclerView sessionsRecyclerView = findViewById(R.id.sessionsRecyclerView);
