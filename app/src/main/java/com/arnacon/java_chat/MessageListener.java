@@ -25,7 +25,6 @@ public class MessageListener {
 
 
     private MessageListener(Context context, String user) {
-        // Assuming FirestoreMessaging takes the current user as the parameter for initialization
         this.firestoreMessaging = new FirestoreMessaging(user);
         this.chatManager = new ChatManager(context, user);
         this.username = user;

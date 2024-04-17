@@ -44,7 +44,7 @@ public class ChatRoomActivity extends AppCompatActivity {
         setContentView(R.layout.activity_chatroom);
         setupIntentData();
 
-        SessionManager sessionManager = new SessionManager(this, username);
+        SessionManager sessionManager = new SessionManager(this);
         chatManager = new ChatManager(this,username);
 
         Log.d("ChatRoomActivity", "Fetching session: " + sessionContext);
